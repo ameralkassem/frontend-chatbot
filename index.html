@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intellix AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
+        .chat-container { max-width: 768px; margin: 0 auto; }
+        .user-msg { background-color: #f4f4f4; border-radius: 1.25rem; padding: 0.75rem 1.25rem; }
+        #chat-window::-webkit-scrollbar { width: 6px; }
+        #chat-window::-webkit-scrollbar-thumb { background: #ececec; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <header class="p-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <div class="chat-container flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight text-gray-900">Intellix</h1>
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="text-xs text-gray-500 font-medium">v2.5 Online</span>
+            </div>
+        </div>
+    </header>
+
+    <main id="chat-window" class="flex-1 overflow-y-auto pt-10 pb-40">
+        <div class="chat-container px-4 space-y-10" id="messages-wrapper">
+            <div class="text-center py-20" id="welcome-screen">
+                <div class="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">IX</div>
+                <h2 class="text-3xl font-semibold text-gray-900">How can I help you today?</h2>
+            </div>
+        </div>
+    </main>
+
+    <footer class="fixed bottom-0 w-full bg-white pb-10">
+        <div class="chat-container px-4">
+            <div class="relative flex items-center bg-[#f4f4f4] rounded-3xl p-1.5 focus-within:ring-1 focus-within:ring-gray-300 transition-all">
+                <input type="text" id="user-input" 
+                    class="flex-1 bg-transparent border-none px-4 py-3 outline-none text-gray-800 placeholder-gray-500" 
+                    placeholder="Message Intellix..."
+                    onkeypress="if(event.key === 'Enter') askAI()">
+                
+                <button onclick="askAI()" id="send-btn"
+                    class="bg-black hover:bg-gray-800 text-white p-2.5 rounded-full transition-all disabled:opacity-20 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                </button>
+            </div>
+            <p class="text-[11px] text-center text-gray-400 mt-4">Intellix can make mistakes. Check important info.</p>
+        </div>
+    </footer>
+
+    <script>
+        async function askAI() {
+            const input = document.getElementById('user-input');
+            const messagesWrapper = document.getElementById('messages-wrapper');
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const sendBtn = document.getElementById('send-btn');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Hide welcome screen on first message
+            if (welcomeScreen) welcomeScreen.style.display = 'none';
+
+            // User message bubble
+            messagesWrapper.innerHTML += `
+                <div class="flex justify-end mb-6">
+                    <div class="user-msg text-gray-800 text-[15px] max-w-[85%] shadow-sm">
+                        ${message}
+                    </div>
+                </div>`;
+            
+            input.value = '';
+            input.focus();
+            
+            // Auto scroll
+            const chatWin = document.getElementById('chat-window');
+            chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+
+                // AI message (ChatGPT Style)
+                messagesWrapper.innerHTML += `
+                    <div class="flex gap-4 mb-8">
+                        <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">IX</div>
+                        <div class="text-[15px] text-gray-800 leading-7 pt-1 w-full">
+                            ${data.reply || "Sorry, I encountered an error."}
+                        </div>
+                    </div>`;
+
+            } catch (error) {
+                messagesWrapper.innerHTML += `<div class="text-red-500 text-xs text-center italic">Connection error. Is Laravel running?</div>`;
+            } finally {
+                sendBtn.disabled = false;
+                chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+            }
+        }
+    </script>
+</body>
+</html>
